@@ -1,0 +1,5 @@
+PyYAML
+pandas
+plotly
+streamlit
+fpdf
