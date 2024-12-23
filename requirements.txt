@@ -1,5 +1,8 @@
-PyYAML
+streamlit
 pandas
 plotly
-streamlit
-fpdf
+PyYAML
+requests
+beautifulsoup4
+xlsxwriter
+kaleido
