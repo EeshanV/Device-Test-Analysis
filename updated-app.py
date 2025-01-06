@@ -1,4 +1,3 @@
-# Update the navigation radio button to include the new page
 page = st.sidebar.radio("Navigation", ["Main Dashboard", "Device Analysis", "Test Analysis"])
 
 if page == "Device Analysis":
