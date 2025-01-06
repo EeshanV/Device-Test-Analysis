@@ -6,7 +6,7 @@ The `app.py` script is a Streamlit application designed to visualize and analyze
 ## Features
 - Interactive dashboards for visualizing build and test data.
 - Heatmaps, pie charts, line charts, and scatter plots for data analysis.
-- PDF report generation with embedded plots.
+- Report generation with embedded plots.
 
 ## Installation
 
@@ -33,23 +33,24 @@ The `app.py` script is a Streamlit application designed to visualize and analyze
    ```
 
 2. **Interact with the dashboard:**
-   - Use the sidebar to filter data by build names, test names, job names, and architectures.
+   - Use the sidebar to filter data by build names, test names, job names, architectures and Devices.
    - Visualize the data using various plots:
      - **Toolchain vs Job Name and Architecture Heatmap**
      - **Target Architecture Distribution Pie Chart**
-     - **Number of Tests per Job Line Chart**
+     - **Toolchain Distribution Bar Chart**
      - **Builds vs Tests Scatter Plot**
-
-
-## Configuration
-The application reads data from a YAML file (`linux-6.12.y-plan.yml`) which contains job, build, and test configurations. Ensure this file is present in the same directory as `app.py`.
+     - **Number of Tests per Job Line Chart**
 
 ## Dependencies
 The application relies on the following Python packages:
-- PyYAML
+- streamlit
+- streamlit-extras
 - pandas
 - plotly
-- streamlit
-- fpdf
+- PyYAML
+- requests
+- beautifulsoup4
+- xlsxwriter
+- kaleido
 
 These are listed in the `requirements.txt` file and can be installed using `pip`.
