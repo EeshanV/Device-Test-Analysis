@@ -39,65 +39,62 @@ def extract_data(yaml_data, file_name):
         job_name = job.get('name', 'Unknown')
         
         for test in job.get('tests', []):
-            device = test.get('device')
-            if not device:
-                continue
-                
+            device = test.get('device', 'unspecified')
             tests = test.get('tests', [])
             if not isinstance(tests, list):
                 tests = [tests]
             
             for test_name in tests:
-                if test_name:
+                if test_name is not None:
                     data.append({
                         'device': device,
                         'test': str(test_name),
-                        'file': file_name
+                        'file': file_name,
+                        'level': 'job'
                     })
         
         for build in job.get('builds', []):
             build_name = build.get('build_name', '')
             
             for test in build.get('tests', []):
-                device = test.get('device')
-                if not device:
-                    continue
-                    
+                device = test.get('device', 'unspecified')
                 tests = test.get('tests', [])
                 if not isinstance(tests, list):
                     tests = [tests]
                 
                 for test_name in tests:
-                    if test_name:
+                    if test_name is not None:
                         data.append({
                             'device': device,
                             'test': str(test_name),
-                            'file': file_name
+                            'file': file_name,
+                            'level': 'build'
                         })
             
             if build.get('targets'):
                 targets = build.get('targets', [])
                 if isinstance(targets, list):
+                    devices = set()
+                    for test in build.get('tests', []):
+                        device = test.get('device', 'unspecified')
+                        devices.add(device)
+                    
+                    if not devices:
+                        devices.add('unspecified')
+                    
                     for target in targets:
-                        if 'test' in target.lower() or target in ['perf', 'kselftest']:
-                            devices = set()
-                            for test in build.get('tests', []):
-                                device = test.get('device')
-                                if device:
-                                    devices.add(device)
-                            
-                            for device in devices:
-                                data.append({
-                                    'device': device,
-                                    'test': target,
-                                    'file': file_name
-                                })
+                        for device in devices:
+                            data.append({
+                                'device': device,
+                                'test': str(target),
+                                'file': file_name,
+                                'level': 'target'
+                            })
     
     return pd.DataFrame(data)
 
 def main():
     st.set_page_config(layout="wide")
-    
     st.title("Device and Test Analysis")
     
     yaml_files = get_yaml_files_from_url(BASE_URL)
@@ -146,6 +143,7 @@ def main():
     
     with col1:
         device_test_counts = filtered_data.groupby('device')['test'].nunique().sort_values(ascending=True)
+        height = max(400, len(device_test_counts) * 30)
         fig1 = px.bar(
             x=device_test_counts.values,
             y=device_test_counts.index,
@@ -156,7 +154,7 @@ def main():
             color_discrete_sequence=px.colors.qualitative.Safe
         )
         fig1.update_layout(
-            height=400,
+            height=height,
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             xaxis=dict(
@@ -173,14 +171,17 @@ def main():
                 showline=True,
                 linewidth=1,
                 linecolor='rgba(128, 128, 128, 0.2)',
-                mirror=True
+                mirror=True,
+                tickmode='linear'
             ),
-            font=dict(size=14)
+            font=dict(size=14),
+            margin=dict(l=200)
         )
         st.plotly_chart(fig1, use_container_width=True)
     
     with col2:
         test_device_counts = filtered_data.groupby('test')['device'].nunique().sort_values(ascending=True)
+        height = max(400, len(test_device_counts) * 30)
         fig2 = px.bar(
             x=test_device_counts.values,
             y=test_device_counts.index,
@@ -191,7 +192,7 @@ def main():
             color_discrete_sequence=px.colors.qualitative.Safe
         )
         fig2.update_layout(
-            height=400,
+            height=height,
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             xaxis=dict(
@@ -208,9 +209,11 @@ def main():
                 showline=True,
                 linewidth=1,
                 linecolor='rgba(128, 128, 128, 0.2)',
-                mirror=True
+                mirror=True,
+                tickmode='linear'
             ),
-            font=dict(size=14)
+            font=dict(size=14),
+            margin=dict(l=200)
         )
         st.plotly_chart(fig2, use_container_width=True)
     
