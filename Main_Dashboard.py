@@ -13,6 +13,8 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from streamlit import runtime
 from streamlit_extras.switch_page_button import switch_page
+from jinja2 import Template
+import json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -267,7 +269,9 @@ if selected_arch_names:
 if selected_device_names:
     filtered_df = filtered_df[filtered_df['device'].isin(selected_device_names)]
 
-filtered_df['test_count'] = filtered_df.groupby('build_name')['test_name'].transform('count')
+filtered_df = filtered_df.assign(
+    test_count=filtered_df.groupby('build_name')['test_name'].transform('count')
+)
 
 if not filtered_df.empty:
     with st.spinner("Generating plots..."):
@@ -309,18 +313,297 @@ st.sidebar.download_button(
 
 @st.cache_data
 def get_filtered_data(df, selected_build_names, selected_test_names, selected_job_names, selected_arch_names, selected_device_names):
-    filtered_df = df
+    filtered_df = df.copy()
+    
+    mask = pd.Series(True, index=filtered_df.index)
+    
     if selected_build_names:
-        filtered_df = filtered_df[filtered_df['build_name'].isin(selected_build_names)]
+        mask &= filtered_df['build_name'].isin(selected_build_names)
     if selected_test_names:
-        filtered_df = filtered_df[filtered_df['test_name'].isin(selected_test_names)]
+        mask &= filtered_df['test_name'].isin(selected_test_names)
     if selected_job_names:
-        filtered_df = filtered_df[filtered_df['job_name'].isin(selected_job_names)]
+        mask &= filtered_df['job_name'].isin(selected_job_names)
     if selected_arch_names:
-        filtered_df = filtered_df[filtered_df['target_arch'].isin(selected_arch_names)]
+        mask &= filtered_df['target_arch'].isin(selected_arch_names)
     if selected_device_names:
-        filtered_df = filtered_df[filtered_df['device'].isin(selected_device_names)]
-    return filtered_df
+        mask &= filtered_df['device'].isin(selected_device_names)
+    
+    return filtered_df.loc[mask].copy()
 
 filtered_df = get_filtered_data(df, selected_build_names, selected_test_names, selected_job_names, selected_arch_names, selected_device_names)
+
+def generate_filtered_dashboard(filtered_df, toolchain_heatmap, arch_pie, build_test_scatter, test_count_line, toolchain_bar):
+    toolchain_heatmap.update_layout(
+        template='plotly',
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(color='black', size=12),
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickfont=dict(color='black'),
+            title_font=dict(color='black'),
+            tickangle=45
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickfont=dict(color='black'),
+            title_font=dict(color='black')
+        ),
+        title_font=dict(color='black'),
+        height=800
+    )
+
+    arch_pie.update_layout(
+        template='plotly',
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(color='black', size=12),
+        title_font=dict(color='black'),
+        legend=dict(
+            font=dict(color='black'),
+            bgcolor='rgba(255, 255, 255, 0.8)',
+            bordercolor='rgba(128, 128, 128, 0.2)',
+            borderwidth=1
+        ),
+        height=600
+    )
+
+    build_test_scatter.update_layout(
+        template='plotly',
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(color='black', size=12),
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickfont=dict(color='black'),
+            title_font=dict(color='black'),
+            tickangle=45
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickfont=dict(color='black'),
+            title_font=dict(color='black')
+        ),
+        title_font=dict(color='black'),
+        legend=dict(
+            font=dict(color='black'),
+            bgcolor='rgba(255, 255, 255, 0.8)',
+            bordercolor='rgba(128, 128, 128, 0.2)',
+            borderwidth=1
+        ),
+        height=800
+    )
+
+    test_count_line.update_layout(
+        template='plotly',
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(color='black', size=12),
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickfont=dict(color='black'),
+            title_font=dict(color='black'),
+            tickangle=45
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickfont=dict(color='black'),
+            title_font=dict(color='black')
+        ),
+        title_font=dict(color='black'),
+        height=600
+    )
+
+    toolchain_bar.update_layout(
+        template='plotly',
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(color='black', size=12),
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickfont=dict(color='black'),
+            title_font=dict(color='black'),
+            tickangle=45
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickfont=dict(color='black'),
+            title_font=dict(color='black')
+        ),
+        title_font=dict(color='black'),
+        legend=dict(
+            font=dict(color='black'),
+            bgcolor='rgba(255, 255, 255, 0.8)',
+            bordercolor='rgba(128, 128, 128, 0.2)',
+            borderwidth=1
+        ),
+        height=600
+    )
+
+    toolchain_heatmap.update_traces(
+        colorscale='RdBu',
+        showscale=True,
+        colorbar=dict(
+            tickfont=dict(color='black'),
+            title=dict(text='Count', font=dict(color='black'))
+        )
+    )
+
+    arch_pie.update_traces(
+        textfont=dict(color='black'),
+        marker=dict(colors=px.colors.qualitative.Set3)
+    )
+
+    build_test_scatter.update_traces(
+        marker=dict(size=8),
+        selector=dict(mode='markers')
+    )
+
+    test_count_line.update_traces(
+        line=dict(width=2),
+        marker=dict(size=8)
+    )
+
+    toolchain_bar.update_traces(
+        marker_color=px.colors.qualitative.Set3,
+        selector=dict(type='bar')
+    )
+
+    plots_data = {}
+    
+    plots_data['arch_pie'] = json.loads(pio.to_json(arch_pie))
+    plots_data['toolchain_heatmap'] = json.loads(pio.to_json(toolchain_heatmap))
+    plots_data['build_test_scatter'] = json.loads(pio.to_json(build_test_scatter))
+    plots_data['test_count_line'] = json.loads(pio.to_json(test_count_line))
+    plots_data['toolchain_bar'] = json.loads(pio.to_json(toolchain_bar))
+    
+    template = Template('''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Linux Kernel Build and Test Dashboard - Filtered Report</title>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                background-color: #f0f2f6;
+            }
+            .plot-container {
+                background-color: white;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 5px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #262730;
+                text-align: center;
+            }
+            .filters-info {
+                background-color: white;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 5px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Linux Kernel Build and Test Dashboard - Filtered Report</h1>
+        
+        <div class="filters-info">
+            <h3>Applied Filters:</h3>
+            <ul>
+                <li>Total Records: {{ filtered_df|length }}</li>
+                <li>Unique Architectures: {{ architectures|join(', ') }}</li>
+                <li>Unique Toolchains: {{ toolchains|join(', ') }}</li>
+                <li>Unique Devices: {{ devices|join(', ') }}</li>
+                <li>Unique Build Names: {{ build_names|join(', ') }}</li>
+            </ul>
+        </div>
+        
+        <div class="plot-container">
+            <div id="toolchain_heatmap"></div>
+        </div>
+        
+        <div class="plot-container">
+            <div id="arch_pie"></div>
+        </div>
+        
+        <div class="plot-container">
+            <div id="toolchain_bar"></div>
+        </div>
+        
+        <div class="plot-container">
+            <div id="build_test_scatter"></div>
+        </div>
+        
+        <div class="plot-container">
+            <div id="test_count_line"></div>
+        </div>
+        
+        <script>
+            var plots_data = {{ plots_data|tojson }};
+            
+            Plotly.newPlot('toolchain_heatmap', plots_data.toolchain_heatmap.data, plots_data.toolchain_heatmap.layout);
+            Plotly.newPlot('arch_pie', plots_data.arch_pie.data, plots_data.arch_pie.layout);
+            Plotly.newPlot('toolchain_bar', plots_data.toolchain_bar.data, plots_data.toolchain_bar.layout);
+            Plotly.newPlot('build_test_scatter', plots_data.build_test_scatter.data, plots_data.build_test_scatter.layout);
+            Plotly.newPlot('test_count_line', plots_data.test_count_line.data, plots_data.test_count_line.layout);
+        </script>
+    </body>
+    </html>
+    ''')
+    
+    template_vars = {
+        'plots_data': plots_data,
+        'filtered_df': filtered_df.to_dict('records'),
+        'architectures': filtered_df['target_arch'].unique().tolist(),
+        'toolchains': filtered_df['toolchain'].unique().tolist(),
+        'devices': filtered_df['device'].unique().tolist(),
+        'build_names': filtered_df['build_name'].unique().tolist()
+    }
+    
+    html_content = template.render(**template_vars)
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
+        f.write(html_content)
+        return f.name
+
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Generate Report"):
+        if not filtered_df.empty:
+            html_file_path = generate_filtered_dashboard(
+                filtered_df,
+                toolchain_heatmap,
+                arch_pie,
+                build_test_scatter,
+                test_count_line,
+                toolchain_bar
+            )
+            
+            with open(html_file_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+                
+            st.download_button(
+                label="Download Report",
+                data=html_content,
+                file_name="report.html",
+                mime="text/html"
+            )
+            
+            os.remove(html_file_path)
+        else:
+            st.warning("No data available to generate a report.")
 

@@ -7,6 +7,8 @@ from fpdf import FPDF
 import tempfile
 import os
 import plotly.io as pio
+from jinja2 import Template
+import json
 
 with open('linux-6.12.y-plan.yml', 'r') as file:
     data = yaml.safe_load(file)
@@ -197,6 +199,77 @@ def generate_pdf_report_with_plots(filtered_df, toolchain_heatmap, arch_pie, bui
 
     return temp_file.name
 
+def generate_filtered_dashboard(filtered_df, toolchain_heatmap, arch_pie, build_test_scatter, test_count_line):
+    plots_data = {}
+    
+    plots_data['arch_pie'] = json.loads(pio.to_json(arch_pie))
+    plots_data['toolchain_heatmap'] = json.loads(pio.to_json(toolchain_heatmap))
+    plots_data['build_test_scatter'] = json.loads(pio.to_json(build_test_scatter))
+    plots_data['test_count_line'] = json.loads(pio.to_json(test_count_line))
+    
+    template = Template('''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Linux Kernel Build and Test Dashboard - Filtered Report</title>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                background-color: #f0f2f6;
+            }
+            .plot-container {
+                background-color: white;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 5px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #262730;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Linux Kernel Build and Test Dashboard - Filtered Report</h1>
+        
+        <div class="plot-container">
+            <div id="toolchain_heatmap"></div>
+        </div>
+        
+        <div class="plot-container">
+            <div id="arch_pie"></div>
+        </div>
+        
+        <div class="plot-container">
+            <div id="build_test_scatter"></div>
+        </div>
+        
+        <div class="plot-container">
+            <div id="test_count_line"></div>
+        </div>
+        
+        <script>
+            var plots_data = {{ plots_data|tojson }};
+            
+            Plotly.newPlot('toolchain_heatmap', plots_data.toolchain_heatmap.data, plots_data.toolchain_heatmap.layout);
+            Plotly.newPlot('arch_pie', plots_data.arch_pie.data, plots_data.arch_pie.layout);
+            Plotly.newPlot('build_test_scatter', plots_data.build_test_scatter.data, plots_data.build_test_scatter.layout);
+            Plotly.newPlot('test_count_line', plots_data.test_count_line.data, plots_data.test_count_line.layout);
+        </script>
+    </body>
+    </html>
+    ''')
+    
+    html_content = template.render(plots_data=plots_data)
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as f:
+        f.write(html_content)
+        return f.name
+
 if st.button("Generate PDF"):
     if not filtered_df.empty:
         pdf_file_path = generate_pdf_report_with_plots(filtered_df, toolchain_heatmap, arch_pie, build_test_scatter, test_count_line)
@@ -210,6 +283,30 @@ if st.button("Generate PDF"):
         os.remove(pdf_file_path)
     else:
         st.warning("No data available to generate a report.")
+
+if st.button("Generate HTML Dashboard"):
+    if not filtered_df.empty:
+        html_file_path = generate_filtered_dashboard(
+            filtered_df,
+            toolchain_heatmap,
+            arch_pie,
+            build_test_scatter,
+            test_count_line
+        )
+        
+        with open(html_file_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+            
+        st.download_button(
+            label="Download HTML Dashboard",
+            data=html_content,
+            file_name="filtered_dashboard.html",
+            mime="text/html"
+        )
+        
+        os.remove(html_file_path)
+    else:
+        st.warning("No data available to generate a dashboard.")
 
 st.plotly_chart(toolchain_heatmap, use_container_width=True)
 st.plotly_chart(arch_pie, use_container_width=True)
