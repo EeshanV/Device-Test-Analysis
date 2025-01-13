@@ -45,6 +45,8 @@ def extract_data(yaml_data, file_name):
         
         for test in job.get('tests', []):
             device = test.get('device', 'unspecified')
+            if device == 'unspecified':
+                continue
             tests = test.get('tests', [])
             if not isinstance(tests, list):
                 tests = [tests]
@@ -63,6 +65,8 @@ def extract_data(yaml_data, file_name):
             
             for test in build.get('tests', []):
                 device = test.get('device', 'unspecified')
+                if device == 'unspecified':
+                    continue
                 tests = test.get('tests', [])
                 if not isinstance(tests, list):
                     tests = [tests]
@@ -82,10 +86,8 @@ def extract_data(yaml_data, file_name):
                     devices = set()
                     for test in build.get('tests', []):
                         device = test.get('device', 'unspecified')
-                        devices.add(device)
-                    
-                    if not devices:
-                        devices.add('unspecified')
+                        if device != 'unspecified':
+                            devices.add(device)
                     
                     for target in targets:
                         for device in devices:
@@ -98,7 +100,7 @@ def extract_data(yaml_data, file_name):
     
     return pd.DataFrame(data)
 
-def generate_device_analysis_report(filtered_data, fig1, fig2, fig3, fig4):
+def generate_device_analysis_report(filtered_data, fig1, fig2, fig3):
     fig1.update_layout(
         template='plotly',
         plot_bgcolor='white',
@@ -120,75 +122,63 @@ def generate_device_analysis_report(filtered_data, fig1, fig2, fig3, fig4):
     )
 
     fig2.update_layout(
+        width=1200,
         template='plotly',
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font=dict(color='black', size=12),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
         xaxis=dict(
             showgrid=True,
             gridcolor='rgba(128, 128, 128, 0.2)',
-            tickfont=dict(color='black'),
-            title_font=dict(color='black')
+            showline=True,
+            linewidth=1,
+            linecolor='rgba(128, 128, 128, 0.2)',
+            mirror=True
         ),
         yaxis=dict(
             showgrid=True,
             gridcolor='rgba(128, 128, 128, 0.2)',
-            tickfont=dict(color='black'),
-            title_font=dict(color='black')
+            showline=True,
+            linewidth=1,
+            linecolor='rgba(128, 128, 128, 0.2)',
+            mirror=True
         ),
-        title_font=dict(color='black')
+        title='Number of Devices per Test',
+        height=1600,
+        font=dict(color='black', size=14)
     )
 
     fig3.update_layout(
+        width=1200,
         template='plotly',
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font=dict(color='black', size=12),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
         xaxis=dict(
             showgrid=True,
             gridcolor='rgba(128, 128, 128, 0.2)',
-            tickfont=dict(color='black'),
-            title_font=dict(color='black')
+            tickangle=45,
+            showline=True,
+            linewidth=1,
+            linecolor='rgba(128, 128, 128, 0.2)',
+            mirror=True
         ),
         yaxis=dict(
             showgrid=True,
             gridcolor='rgba(128, 128, 128, 0.2)',
-            tickfont=dict(color='black'),
-            title_font=dict(color='black')
+            showline=True,
+            linewidth=1,
+            linecolor='rgba(128, 128, 128, 0.2)',
+            mirror=True
         ),
-        title_font=dict(color='black'),
-        legend=dict(
-            font=dict(color='black'),
-            bgcolor='rgba(255, 255, 255, 0.8)'
-        )
-    )
-
-    fig4.update_layout(
-        template='plotly',
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font=dict(color='black', size=12),
-        xaxis=dict(
-            showgrid=True,
-            gridcolor='rgba(128, 128, 128, 0.2)',
-            tickfont=dict(color='black'),
-            title_font=dict(color='black')
-        ),
-        yaxis=dict(
-            showgrid=True,
-            gridcolor='rgba(128, 128, 128, 0.2)',
-            tickfont=dict(color='black'),
-            title_font=dict(color='black')
-        ),
-        title_font=dict(color='black')
+        title='Device Coverage Heatmap',
+        height=800,
+        font=dict(color='black', size=14)
     )
 
     plots_data = {}
     
     plots_data['device_test_counts'] = json.loads(pio.to_json(fig1))
     plots_data['test_device_counts'] = json.loads(pio.to_json(fig2))
-    plots_data['coverage_bar'] = json.loads(pio.to_json(fig3))
-    plots_data['coverage_heatmap'] = json.loads(pio.to_json(fig4))
+    plots_data['coverage_heatmap'] = json.loads(pio.to_json(fig3))
     
     device_analysis = {}
     test_analysis = {}
@@ -339,10 +329,6 @@ def generate_device_analysis_report(filtered_data, fig1, fig2, fig3, fig4):
         </div>
         
         <div class="plot-container">
-            <div id="coverage_bar"></div>
-        </div>
-        
-        <div class="plot-container">
             <div id="coverage_heatmap"></div>
         </div>
 
@@ -433,7 +419,6 @@ def generate_device_analysis_report(filtered_data, fig1, fig2, fig3, fig4):
             
             Plotly.newPlot('device_test_counts', plots_data.device_test_counts.data, plots_data.device_test_counts.layout);
             Plotly.newPlot('test_device_counts', plots_data.test_device_counts.data, plots_data.test_device_counts.layout);
-            Plotly.newPlot('coverage_bar', plots_data.coverage_bar.data, plots_data.coverage_bar.layout);
             Plotly.newPlot('coverage_heatmap', plots_data.coverage_heatmap.data, plots_data.coverage_heatmap.layout);
 
             function filterTable(input, tableId) {
@@ -518,16 +503,6 @@ def main():
     if selected_tests:
         filtered_data = filtered_data[filtered_data['test'].isin(selected_tests)]
     
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Total Devices", len(filtered_data['device'].unique()))
-    with col2:
-        st.metric("Total Tests", len(filtered_data['test'].unique()))
-    with col3:
-        st.metric("Configuration Files", len(filtered_data['file'].unique()))
-    with col4:
-        st.metric("Total Mappings", len(filtered_data))
-        
     col1, col2 = st.columns(2)
     
     with col1:
@@ -606,100 +581,50 @@ def main():
         )
         st.plotly_chart(fig2, use_container_width=True)
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        file_counts = filtered_data.groupby('file').agg({
-            'device': 'nunique',
-            'test': 'nunique'
-        }).reset_index()
-        
-        fig3 = px.bar(
-            file_counts,
-            x='file',
-            y=['device', 'test'],
-            title='Device and Test Coverage by Configuration File',
-            labels={'value': 'Count', 'variable': 'Type'},
-            barmode='group',
-            template='plotly_dark',
-            color_discrete_sequence=px.colors.qualitative.Safe
-        )
-        fig3.update_layout(
-            height=400,
-            xaxis_tickangle=-45,
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(128, 128, 128, 0.2)',
-                showline=True,
-                linewidth=1,
-                linecolor='rgba(128, 128, 128, 0.2)',
-                mirror=True
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(128, 128, 128, 0.2)',
-                showline=True,
-                linewidth=1,
-                linecolor='rgba(128, 128, 128, 0.2)',
-                mirror=True
-            ),
-            font=dict(size=14),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            )
-        )
-        st.plotly_chart(fig3, use_container_width=True)
-    
-    with col2:
-        pivot_data = pd.crosstab(
-            filtered_data['device'],
-            filtered_data['file']
-        )
-        fig4 = go.Figure(data=go.Heatmap(
-            z=pivot_data.values,
-            x=pivot_data.columns,
-            y=pivot_data.index,
-            colorscale=[[0, 'white'], [1, 'red']],
-            text=pivot_data.values,
-            texttemplate='%{text}',
-            textfont={"size": 12},
-            hoverongaps=False,
-            hovertemplate="File: %{x}<br>Device: %{y}<br>Count: %{z}<extra></extra>",
-            showscale=True,
-            xgap=3,
-            ygap=3
-        ))
-        fig4.update_layout(
-            title='Device Coverage Heatmap',
-            height=400,
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(128, 128, 128, 0.2)',
-                tickangle=45,
-                showline=True,
-                linewidth=1,
-                linecolor='rgba(128, 128, 128, 0.2)',
-                mirror=True
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(128, 128, 128, 0.2)',
-                showline=True,
-                linewidth=1,
-                linecolor='rgba(128, 128, 128, 0.2)',
-                mirror=True
-            ),
-            font=dict(size=14)
-        )
-        st.plotly_chart(fig4, use_container_width=True)
+    pivot_data = pd.crosstab(
+        filtered_data['device'],
+        filtered_data['file']
+    )
+    fig3 = go.Figure(data=go.Heatmap(
+        z=pivot_data.values,
+        x=pivot_data.columns,
+        y=pivot_data.index,
+        colorscale=[[0, 'white'], [1, 'red']],
+        text=pivot_data.values,
+        texttemplate='%{text}',
+        textfont={"size": 12},
+        hoverongaps=False,
+        hovertemplate="File: %{x}<br>Device: %{y}<br>Count: %{z}<extra></extra>",
+        showscale=True,
+        xgap=3,
+        ygap=3
+    ))
+    fig3.update_layout(
+        title='Device Coverage Heatmap',
+        height=800,
+        width=1200,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickangle=45,
+            showline=True,
+            linewidth=1,
+            linecolor='rgba(128, 128, 128, 0.2)',
+            mirror=True
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            showline=True,
+            linewidth=1,
+            linecolor='rgba(128, 128, 128, 0.2)',
+            mirror=True
+        ),
+        font=dict(size=14)
+    )
+    st.plotly_chart(fig3, use_container_width=True)
     
     st.markdown("---")
     
@@ -790,9 +715,8 @@ def main():
                 filtered_data,
                 fig1,
                 fig2,
-                fig3,
-                fig4
-                )
+                fig3
+            )
                 
             with open(html_file_path, 'r', encoding='utf-8') as f:
                 html_content = f.read()
@@ -802,7 +726,7 @@ def main():
                 data=html_content,
                 file_name="device_analysis_report.html",
                 mime="text/html"
-                )
+            )
                 
             os.remove(html_file_path)
         else:
