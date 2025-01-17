@@ -16,6 +16,18 @@ BASE_URL = "https://people.linaro.org/~naresh.kamboju/lkft-common/tuxconfig/"
 
 @st.cache_data
 def get_yaml_files_from_url(url):
+    """
+    Fetches a list of YAML file URLs from a given base URL.
+
+    Args:
+        url (str): The base URL to fetch YAML files from.
+
+    Returns:
+        list: A list of full URLs to YAML files.
+
+    Raises:
+        Exception: If there is an error fetching the YAML files.
+    """
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -29,6 +41,18 @@ def get_yaml_files_from_url(url):
 
 @st.cache_data
 def load_yaml_data(file_path):
+    """
+    Loads and parses YAML data from a given file path.
+
+    Args:
+        file_path (str): The path to the YAML file.
+
+    Returns:
+        dict: Parsed YAML data.
+
+    Raises:
+        Exception: If there is an error loading the YAML file.
+    """
     try:
         response = requests.get(file_path)
         response.raise_for_status()
@@ -38,6 +62,16 @@ def load_yaml_data(file_path):
         return None
 
 def extract_data(yaml_data, file_name):
+    """
+    Extracts device and test information from YAML data.
+
+    Args:
+        yaml_data (dict): The parsed YAML data.
+        file_name (str): The name of the YAML file.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing device and test information.
+    """
     data = []
     
     for job in yaml_data.get('jobs', []):
@@ -101,6 +135,18 @@ def extract_data(yaml_data, file_name):
     return pd.DataFrame(data)
 
 def generate_device_analysis_report(filtered_data, fig1, fig2, fig3):
+    """
+    Generates an HTML report for device and test analysis.
+
+    Args:
+        filtered_data (pd.DataFrame): The filtered data for analysis.
+        fig1 (go.Figure): Plotly figure for device test counts.
+        fig2 (go.Figure): Plotly figure for test device counts.
+        fig3 (go.Figure): Plotly figure for device coverage heatmap.
+
+    Returns:
+        str: The file path to the generated HTML report.
+    """
     fig1.update_layout(
         template='plotly',
         plot_bgcolor='white',
@@ -468,6 +514,30 @@ def generate_device_analysis_report(filtered_data, fig1, fig2, fig3):
         return f.name
 
 def main():
+    """
+    Main function to run the Streamlit application for device and test analysis.
+
+    This function sets up the Streamlit page configuration, fetches YAML files from a predefined URL,
+    processes the data to extract device and test information, and displays interactive visualizations
+    and filters for user interaction. It also provides functionality to generate and download an HTML
+    report based on the filtered data.
+
+    Workflow:
+    1. Set up the Streamlit page layout and title.
+    2. Fetch YAML files from the specified BASE_URL.
+    3. Load and parse each YAML file to extract relevant data.
+    4. Concatenate all extracted data into a single DataFrame.
+    5. Display filters in the sidebar for devices and tests.
+    6. Generate and display visualizations:
+       - Bar chart for the number of tests per device.
+       - Bar chart for the number of devices per test.
+       - Heatmap for device coverage across configuration files.
+    7. Provide expandable sections for detailed device and test analysis.
+    8. Allow users to generate and download an HTML report of the analysis.
+
+    Raises:
+        Streamlit errors and warnings for data fetching and processing issues.
+    """
     st.set_page_config(layout="wide")
     st.title("Device and Test Analysis")
     

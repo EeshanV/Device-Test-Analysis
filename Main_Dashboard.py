@@ -22,8 +22,21 @@ logger = logging.getLogger(__name__)
 DEFAULT_COLOR_SCHEME = px.colors.qualitative.Plotly
 
 st.set_page_config(page_title="Linux Kernel Build and Test Dashboard", layout="wide")
+
 @st.cache_data
 def get_yaml_files_from_url(url):
+    """
+    Fetches a list of YAML file URLs from a given base URL.
+
+    Args:
+        url (str): The base URL to fetch YAML files from.
+
+    Returns:
+        list: A list of full URLs to YAML files.
+
+    Raises:
+        Exception: If there is an error fetching the YAML files.
+    """
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -38,6 +51,18 @@ def get_yaml_files_from_url(url):
 
 @st.cache_data
 def load_yaml_data(file_path):
+    """
+    Loads and parses YAML data from a given file path.
+
+    Args:
+        file_path (str): The path to the YAML file.
+
+    Returns:
+        dict: Parsed YAML data.
+
+    Raises:
+        Exception: If there is an error loading the YAML file.
+    """
     try:
         if file_path.startswith(('http://', 'https://')):
             response = requests.get(file_path)
@@ -55,6 +80,15 @@ def load_yaml_data(file_path):
 
 @st.cache_data
 def extract_job_data(data):
+    """
+    Extracts job, build, and test information from the parsed YAML data.
+
+    Args:
+        data (dict): The parsed YAML data containing job information.
+
+    Returns:
+        list: A list of dictionaries, each containing job, build, and test details.
+    """
     job_data = []
     if data:
         for job in data.get('jobs', []):
@@ -78,6 +112,15 @@ def extract_job_data(data):
     return job_data
 
 def create_arch_pie_chart(filtered_df):
+    """
+    Creates a pie chart showing the distribution of target architectures.
+
+    Args:
+        filtered_df (pd.DataFrame): The filtered DataFrame containing job data.
+
+    Returns:
+        plotly.graph_objects.Figure: A Plotly pie chart figure.
+    """
     arch_counts = filtered_df['target_arch'].value_counts().reset_index()
     arch_counts.columns = ['target_arch', 'count']
     return px.pie(
@@ -93,6 +136,15 @@ def create_arch_pie_chart(filtered_df):
     )
 
 def create_toolchain_heatmap(filtered_df):
+    """
+    Creates a heatmap showing the relationship between toolchains, job names, and architectures.
+
+    Args:
+        filtered_df (pd.DataFrame): The filtered DataFrame containing job data.
+
+    Returns:
+        plotly.graph_objects.Figure: A Plotly heatmap figure.
+    """
     heatmap_data = filtered_df.groupby(['job_name', 'target_arch', 'toolchain']).size().reset_index(name='count')
     heatmap_data['job_arch'] = heatmap_data['job_name'] + ' (' + heatmap_data['target_arch'] + ')'
     heatmap_pivot = heatmap_data.pivot(index='job_arch', columns='toolchain', values='count').fillna(0)
@@ -140,6 +192,15 @@ def create_toolchain_heatmap(filtered_df):
     )
 
 def create_test_count_line_chart(filtered_df):
+    """
+    Creates a line chart showing the number of tests per job.
+
+    Args:
+        filtered_df (pd.DataFrame): The filtered DataFrame containing job data.
+
+    Returns:
+        plotly.graph_objects.Figure: A Plotly line chart figure.
+    """
     return px.line(
         filtered_df.groupby('job_name').size().reset_index(name='test_count'),
         x='job_name', y='test_count', title='Number of Tests per Job',
@@ -147,6 +208,15 @@ def create_test_count_line_chart(filtered_df):
     )
 
 def create_build_test_scatter(filtered_df):
+    """
+    Creates a scatter plot showing the relationship between builds and tests.
+
+    Args:
+        filtered_df (pd.DataFrame): The filtered DataFrame containing job data.
+
+    Returns:
+        plotly.graph_objects.Figure: A Plotly scatter plot figure.
+    """
     scatter_fig = px.scatter(
         filtered_df,
         x='build_name',
@@ -185,9 +255,17 @@ def create_build_test_scatter(filtered_df):
     return scatter_fig
 
 def create_toolchain_bar_chart(filtered_df):
+    """
+    Creates a bar chart showing the distribution of toolchains.
+
+    Args:
+        filtered_df (pd.DataFrame): The filtered DataFrame containing job data.
+
+    Returns:
+        plotly.graph_objects.Figure: A Plotly bar chart figure.
+    """
     toolchain_counts = filtered_df['toolchain'].value_counts().reset_index()
     toolchain_counts.columns = ['toolchain', 'count']
-
 
     return px.bar(
         toolchain_counts,
@@ -206,6 +284,15 @@ def create_toolchain_bar_chart(filtered_df):
     )
 
 def validate_yaml_data(data):
+    """
+    Validates the structure of the parsed YAML data.
+
+    Args:
+        data (dict): The parsed YAML data.
+
+    Returns:
+        bool: True if the data is valid, False otherwise.
+    """
     if not data or 'jobs' not in data:
         st.error("Invalid YAML structure: 'jobs' key not found.")
         return False
@@ -281,7 +368,6 @@ if not filtered_df.empty:
         build_test_scatter = create_build_test_scatter(filtered_df)
         toolchain_bar = create_toolchain_bar_chart(filtered_df)
 
-
     st.plotly_chart(toolchain_heatmap, use_container_width=True)
     st.plotly_chart(arch_pie, use_container_width=True)
     st.plotly_chart(toolchain_bar, use_container_width=True)
@@ -313,6 +399,20 @@ st.sidebar.download_button(
 
 @st.cache_data
 def get_filtered_data(df, selected_build_names, selected_test_names, selected_job_names, selected_arch_names, selected_device_names):
+    """
+    Filters the DataFrame based on selected criteria.
+
+    Args:
+        df (pd.DataFrame): The original DataFrame containing job data.
+        selected_build_names (list): List of selected build names.
+        selected_test_names (list): List of selected test names.
+        selected_job_names (list): List of selected job names.
+        selected_arch_names (list): List of selected architectures.
+        selected_device_names (list): List of selected devices.
+
+    Returns:
+        pd.DataFrame: A filtered DataFrame based on the selected criteria.
+    """
     filtered_df = df.copy()
     
     mask = pd.Series(True, index=filtered_df.index)
@@ -333,6 +433,20 @@ def get_filtered_data(df, selected_build_names, selected_test_names, selected_jo
 filtered_df = get_filtered_data(df, selected_build_names, selected_test_names, selected_job_names, selected_arch_names, selected_device_names)
 
 def generate_filtered_dashboard(filtered_df, toolchain_heatmap, arch_pie, build_test_scatter, test_count_line, toolchain_bar):
+    """
+    Generates an HTML report for the filtered dashboard.
+
+    Args:
+        filtered_df (pd.DataFrame): The filtered DataFrame for analysis.
+        toolchain_heatmap (go.Figure): Plotly figure for toolchain heatmap.
+        arch_pie (go.Figure): Plotly figure for architecture pie chart.
+        build_test_scatter (go.Figure): Plotly figure for build-test scatter plot.
+        test_count_line (go.Figure): Plotly figure for test count line chart.
+        toolchain_bar (go.Figure): Plotly figure for toolchain bar chart.
+
+    Returns:
+        str: The file path to the generated HTML report.
+    """
     toolchain_heatmap.update_layout(
         template='plotly',
         plot_bgcolor='white',
