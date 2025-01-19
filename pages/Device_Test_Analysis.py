@@ -538,7 +538,7 @@ def main():
     Raises:
         Streamlit errors and warnings for data fetching and processing issues.
     """
-    st.set_page_config(layout="wide", page_icon="favicon.ico")
+    st.set_page_config(page_title="Linux Kernel Device and Test Analysis",layout="wide", page_icon="favicon.ico")
     st.title("Device and Test Analysis")
     
     yaml_files = get_yaml_files_from_url(BASE_URL)
