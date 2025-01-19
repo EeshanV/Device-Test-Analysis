@@ -14,8 +14,6 @@ import os
 
 BASE_URL = "https://people.linaro.org/~naresh.kamboju/lkft-common/tuxconfig/"
 
-st.set_page_config(page_title="Linux Kernel Build and Test Dashboard", layout="wide", page_icon="../favicon.ico")
-
 @st.cache_data
 def get_yaml_files_from_url(url):
     """
