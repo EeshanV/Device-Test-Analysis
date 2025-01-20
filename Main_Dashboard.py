@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 
 import yaml
+import os
 
 import pandas as pd
 import tempfile
