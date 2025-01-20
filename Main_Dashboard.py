@@ -1,20 +1,24 @@
-import yaml
-import pandas as pd
+import streamlit as st
+from streamlit import runtime
+from streamlit_extras.switch_page_button import switch_page
+
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
-import tempfile
-import os
 import plotly.io as pio
+
+import yaml
+
+import pandas as pd
+import tempfile
+
 from io import BytesIO
 import logging
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from streamlit import runtime
-from streamlit_extras.switch_page_button import switch_page
 from jinja2 import Template
 import json
+
 from dashboard_module import generate_filtered_dashboard
 
 logging.basicConfig(level=logging.INFO)

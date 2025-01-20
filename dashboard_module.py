@@ -135,7 +135,7 @@ def generate_filtered_dashboard(filtered_df, toolchain_heatmap, arch_pie, build_
     )
 
     toolchain_heatmap.update_traces(
-        colorscale='RdBu',
+        colorscale='RdBu_r',
         showscale=True,
         colorbar=dict(
             tickfont=dict(color='black'),
