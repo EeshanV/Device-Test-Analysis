@@ -135,6 +135,20 @@ def extract_data(yaml_data, file_name):
     
     return pd.DataFrame(data)
 
+def create_dynamic_filename(base_name, components):
+    """
+    Creates a dynamic filename by joining the base name with components.
+
+    Args:
+        base_name (str): The base name for the file.
+        components (list): A list of components to include in the filename.
+
+    Returns:
+        str: A dynamically generated filename.
+    """
+    components_str = "_".join(filter(None, components))
+    return f"{base_name}_{components_str}.html"
+
 def main():
     """
     Main function to run the Streamlit application for device and test analysis.
