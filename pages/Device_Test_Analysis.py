@@ -414,14 +414,19 @@ def main():
                 
             with open(html_file_path, 'r', encoding='utf-8') as f:
                 html_content = f.read()
-                    
+
+            html_filename = create_dynamic_filename('device_analysis_report', [
+                "_".join(selected_devices),
+                "_".join(selected_tests)
+            ]) + ".html"
+
             st.download_button(
                 label="Download Report",
                 data=html_content,
-                file_name="device_analysis_report.html",
+                file_name=html_filename,
                 mime="text/html"
             )
-                
+
             os.remove(html_file_path)
         else:
             st.warning("No data available to generate a report.")
