@@ -465,11 +465,19 @@ if st.button("Generate Report"):
             
         with open(html_file_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
-            
+
+        html_filename = create_dynamic_filename('report', [
+            "_".join(selected_build_names),
+            "_".join(selected_test_names),
+            "_".join(selected_job_names),
+            "_".join(selected_arch_names),
+            "_".join(selected_device_names)
+        ]) + ".html"
+        
         st.download_button(
             label="Download Report",
             data=html_content,
-            file_name="report.html",
+            file_name=html_filename,
             mime="text/html"
         )
 
