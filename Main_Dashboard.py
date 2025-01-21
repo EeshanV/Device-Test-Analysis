@@ -472,7 +472,8 @@ if st.button("Generate Report"):
             "_".join(selected_job_names),
             "_".join(selected_arch_names),
             "_".join(selected_device_names)
-        ]) + ".html"
+        ])
+        html_filename = excel_filename.replace('.xlsx', '.html')
         
         st.download_button(
             label="Download Report",

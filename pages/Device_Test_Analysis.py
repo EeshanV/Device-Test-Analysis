@@ -418,7 +418,8 @@ def main():
             html_filename = create_dynamic_filename('device_analysis_report', [
                 "_".join(selected_devices),
                 "_".join(selected_tests)
-            ]) + ".html"
+            ])
+            html_filename = excel_filename.replace('.xlsx', '.html')
 
             st.download_button(
                 label="Download Report",
